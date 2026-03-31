@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Recipe Finder — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">AI Recipe Finder</h1>
+                <p class="page-subtitle">Discover healthy recipes based on your ingredients or preferences</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label for="recipeQuery">What ingredients do you have, or what are you craving?</label>
+                <div class="analyzer-input-wrap">
+                    <input type="text" id="recipeQuery" placeholder="e.g., paneer, spinach, and tomatoes" class="input-lg">
+                    <button class="btn btn-primary" onclick="findRecipes()" id="recipeBtn">🍳 Find Recipes</button>
+                </div>
+            </div>
+            <div class="quick-foods">
+                <span class="quick-label">Popular:</span>
+                <button class="chip-btn" onclick="quickRecipe('High protein chicken meals')">🍗 High Protein</button>
+                <button class="chip-btn" onclick="quickRecipe('Quick 15-minute vegetarian dinner')">⚡ Quick Veggie</button>
+                <button class="chip-btn" onclick="quickRecipe('Healthy Indian breakfast recipes')">🇮🇳 Indian Breakfast</button>
+                <button class="chip-btn" onclick="quickRecipe('Low calorie snacks under 200 calories')">🍎 Low Cal Snacks</button>
+                <button class="chip-btn" onclick="quickRecipe('Protein-rich smoothie recipes')">🥤 Smoothies</button>
+            </div>
+        </div>
+
+        <div class="plan-loading" id="recipeLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p>Finding delicious recipes for you...</p>
+        </div>
+
+        <div id="recipeResults" style="display:none;"></div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function quickRecipe(q) { document.getElementById('recipeQuery').value = q; findRecipes(); }
+
+async function findRecipes() {
+    const query = document.getElementById('recipeQuery').value.trim();
+    if (!query) { showToast('Describe ingredients or a preference', 'error'); return; }
+
+    document.getElementById('recipeBtn').disabled = true;
+    document.getElementById('recipeLoading').style.display = 'flex';
+    document.getElementById('recipeResults').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/recipes', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({query})
+        });
+        const data = await res.json();
+
+        if (data.recipes) {
+            renderRecipes(data.recipes);
+        } else if (data.recipes_text) {
+            document.getElementById('recipeResults').innerHTML = `<div class="card">${data.recipes_text}</div>`;
+        } else if (data.error) {
+            showToast(data.error, 'error');
+        }
+        document.getElementById('recipeResults').style.display = 'block';
+    } catch(e) { showToast('Failed to find recipes', 'error'); }
+
+    document.getElementById('recipeLoading').style.display = 'none';
+    document.getElementById('recipeBtn').disabled = false;
+}
+
+function renderRecipes(recipes) {
+    document.getElementById('recipeResults').innerHTML = recipes.map(r => `
+        <div class="card animate-slide-up" style="margin-bottom:16px;">
+            <div class="meal-card-header">
+                <div>
+                    <h3 style="margin:0;font-size:20px;">${r.name}</h3>
+                    <p style="color:var(--text-muted);font-size:13px;margin:4px 0 0;">${r.cuisine || ''} cuisine · ${r.difficulty || 'Easy'}</p>
+                </div>
+                <div class="food-macros">
+                    <span class="macro cal">${r.calories_per_serving || '—'} kcal</span>
+                    <span class="macro pro">🍽️ ${r.servings || 2} servings</span>
+                </div>
+            </div>
+            <div class="meal-meta" style="margin-bottom:16px;">
+                <span>⏱️ Prep: ${r.prep_time || '—'}</span>
+                <span>🔥 Cook: ${r.cook_time || '—'}</span>
+            </div>
+            ${r.nutrition_highlight ? `<div class="tip-banner" style="margin-bottom:16px;"><span class="tip-icon">💡</span><p style="margin:0;">${r.nutrition_highlight}</p></div>` : ''}
+            <h4 style="margin-bottom:8px;">Ingredients</h4>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+                ${(r.ingredients || []).map(i => `<span class="health-tag">${i}</span>`).join('')}
+            </div>
+            <h4 style="margin-bottom:8px;">Instructions</h4>
+            <ol style="padding-left:20px;color:var(--text-secondary);font-size:14px;">
+                ${(r.instructions || []).map(s => `<li style="margin-bottom:6px;">${s}</li>`).join('')}
+            </ol>
+            ${r.health_benefits ? `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">${r.health_benefits.map(b => `<span class="health-tag" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.2);color:var(--protein-color);">✨ ${b}</span>`).join('')}</div>` : ''}
+        </div>
+    `).join('');
+}
+</script>
+{% endblock %}
