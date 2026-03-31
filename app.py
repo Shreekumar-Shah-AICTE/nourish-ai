@@ -562,6 +562,314 @@ def quick_tip():
 
 
 # ---------------------------------------------------------------------------
+# Feature: Recipe Suggestions
+# ---------------------------------------------------------------------------
+RECIPE_SYSTEM = """You are a recipe suggestion AI. Based on the ingredients or preferences
+described, suggest 3 quick, healthy recipes.
+
+RESPOND IN THIS EXACT JSON FORMAT:
+{
+  "recipes": [
+    {
+      "name": "Recipe Name",
+      "cuisine": "Indian",
+      "prep_time": "20 mins",
+      "cook_time": "15 mins",
+      "difficulty": "Easy",
+      "servings": 2,
+      "calories_per_serving": 350,
+      "ingredients": ["ingredient 1", "ingredient 2"],
+      "instructions": ["Step 1", "Step 2"],
+      "nutrition_highlight": "High in protein, low in fat",
+      "health_benefits": ["Boosts immunity", "Good for digestion"]
+    }
+  ]
+}
+"""
+
+
+@app.route("/api/recipes", methods=["POST"])
+def suggest_recipes():
+    """Get AI-powered recipe suggestions based on ingredients or preferences."""
+    try:
+        data = request.get_json()
+        query = data.get("query", "").strip()
+        if not query:
+            return jsonify({"error": "Please describe ingredients or preferences"}), 400
+
+        profile = get_user_profile()
+        dietary = profile.get("dietary_pref", "none")
+        allergies = profile.get("allergies", [])
+
+        prompt = f"""Suggest 3 healthy recipes for: {query}
+Dietary preference: {dietary}
+Allergies to avoid: {', '.join(allergies) if allergies else 'None'}
+"""
+        response = ai_generate(prompt, RECIPE_SYSTEM)
+        if isinstance(response, dict) and "error" in response:
+            return jsonify(response), 503
+
+        recipes = parse_ai_json(response)
+        if recipes:
+            return jsonify({"recipes": recipes.get("recipes", [])})
+        return jsonify({"recipes_text": response})
+
+    except Exception as e:
+        logger.error(f"Recipe suggestion error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Feature: Food Comparison
+# ---------------------------------------------------------------------------
+COMPARE_SYSTEM = """Compare the nutritional value of two foods side by side.
+Provide a clear winner and explain why.
+
+RESPOND IN THIS EXACT JSON FORMAT:
+{
+  "food_a": {
+    "name": "Food A",
+    "calories": 250,
+    "protein": 20,
+    "carbs": 30,
+    "fat": 8,
+    "fiber": 5,
+    "health_score": 7
+  },
+  "food_b": {
+    "name": "Food B",
+    "calories": 400,
+    "protein": 10,
+    "carbs": 55,
+    "fat": 15,
+    "fiber": 2,
+    "health_score": 4
+  },
+  "winner": "Food A",
+  "reason": "Lower calories, higher protein, more fiber",
+  "verdict": "Choose Food A for a healthier option with better macro balance",
+  "context_tips": ["Food B is okay as an occasional treat", "Consider portion size"]
+}
+"""
+
+
+@app.route("/api/compare", methods=["POST"])
+def compare_foods():
+    """Compare two foods nutritionally using Gemini AI."""
+    try:
+        data = request.get_json()
+        food_a = data.get("food_a", "").strip()
+        food_b = data.get("food_b", "").strip()
+
+        if not food_a or not food_b:
+            return jsonify({"error": "Please provide two foods to compare"}), 400
+
+        prompt = f"Compare these two foods: '{food_a}' vs '{food_b}'"
+        response = ai_generate(prompt, COMPARE_SYSTEM)
+
+        if isinstance(response, dict) and "error" in response:
+            return jsonify(response), 503
+
+        comparison = parse_ai_json(response)
+        if comparison:
+            return jsonify({"comparison": comparison})
+        return jsonify({"comparison_text": response})
+
+    except Exception as e:
+        logger.error(f"Compare error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Feature: BMI Calculator with Health Insights
+# ---------------------------------------------------------------------------
+@app.route("/api/bmi", methods=["POST"])
+def calculate_bmi():
+    """Calculate BMI and provide AI-powered health insights."""
+    try:
+        data = request.get_json()
+        weight = float(data.get("weight", 0))
+        height_cm = float(data.get("height", 0))
+
+        if weight <= 0 or height_cm <= 0:
+            return jsonify({"error": "Invalid weight or height"}), 400
+
+        height_m = height_cm / 100
+        bmi = round(weight / (height_m ** 2), 1)
+
+        # BMI classification
+        if bmi < 18.5:
+            category = "Underweight"
+            color = "#3b82f6"
+            advice = "Consider nutrient-dense foods to reach a healthy weight."
+        elif bmi < 25:
+            category = "Normal"
+            color = "#22c55e"
+            advice = "Great! Maintain your healthy weight with balanced nutrition."
+        elif bmi < 30:
+            category = "Overweight"
+            color = "#f59e0b"
+            advice = "Small dietary changes and regular activity can help."
+        else:
+            category = "Obese"
+            color = "#ef4444"
+            advice = "Consider consulting a healthcare provider for guidance."
+
+        # Healthy weight range
+        healthy_min = round(18.5 * (height_m ** 2), 1)
+        healthy_max = round(24.9 * (height_m ** 2), 1)
+
+        return jsonify({
+            "bmi": bmi,
+            "category": category,
+            "color": color,
+            "advice": advice,
+            "healthy_range": {"min": healthy_min, "max": healthy_max},
+            "current_weight": weight,
+        })
+
+    except Exception as e:
+        logger.error(f"BMI calc error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Feature: Nutrition Knowledge Quiz
+# ---------------------------------------------------------------------------
+QUIZ_SYSTEM = """Generate a nutrition knowledge quiz question.
+
+RESPOND IN THIS EXACT JSON FORMAT:
+{
+  "question": "Which food is highest in vitamin C?",
+  "options": ["Orange", "Guava", "Apple", "Banana"],
+  "correct_answer": 1,
+  "explanation": "Guava contains about 228mg of vitamin C per 100g, which is more than 4 times that of an orange.",
+  "fun_fact": "Bell peppers actually contain more vitamin C than oranges!",
+  "difficulty": "medium",
+  "category": "Vitamins"
+}
+"""
+
+
+@app.route("/api/quiz", methods=["GET"])
+def nutrition_quiz():
+    """Generate a nutrition knowledge quiz question."""
+    try:
+        topics = [
+            "vitamins and minerals", "macronutrients", "Indian superfoods",
+            "hydration", "meal timing", "protein sources", "healthy fats",
+            "fiber-rich foods", "antioxidants", "gut health"
+        ]
+        import random
+        topic = random.choice(topics)
+
+        prompt = f"Generate ONE nutrition quiz question about {topic}. Make it educational and fun."
+        response = ai_generate(prompt, QUIZ_SYSTEM)
+
+        if isinstance(response, dict) and "error" in response:
+            # Fallback quiz question
+            return jsonify({
+                "question": "Which nutrient helps build and repair muscles?",
+                "options": ["Carbohydrates", "Protein", "Vitamin C", "Fat"],
+                "correct_answer": 1,
+                "explanation": "Protein provides amino acids that are essential for building and repairing muscle tissue.",
+                "fun_fact": "Your body needs about 0.8-1g of protein per kg of body weight daily!",
+                "difficulty": "easy",
+                "category": "Macronutrients",
+            })
+
+        quiz = parse_ai_json(response)
+        if quiz:
+            return jsonify(quiz)
+        return jsonify({"question_text": response})
+
+    except Exception as e:
+        logger.error(f"Quiz error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Feature: Health Insights Report
+# ---------------------------------------------------------------------------
+@app.route("/api/health-report", methods=["GET"])
+def health_report():
+    """Generate a comprehensive health insights report based on user data."""
+    try:
+        profile = get_user_profile()
+        log = session.get("meal_log", [])
+        water = session.get("water_today", 0)
+
+        today = datetime.now().date().isoformat()
+        today_meals = [m for m in log if m.get("time", "").startswith(today)]
+        total_cal = sum(m.get("calories", 0) for m in today_meals)
+        total_protein = sum(m.get("protein", 0) for m in today_meals)
+        total_carbs = sum(m.get("carbs", 0) for m in today_meals)
+        total_fat = sum(m.get("fat", 0) for m in today_meals)
+
+        target_cal = profile.get("daily_calorie_target", 2000)
+        macro_targets = profile.get("macro_targets", {"protein": 150, "carbs": 225, "fat": 56})
+
+        # Calculate scores
+        calorie_score = min(100, round(total_cal / target_cal * 100)) if target_cal else 0
+        protein_score = min(100, round(total_protein / macro_targets.get("protein", 150) * 100)) if macro_targets.get("protein") else 0
+        water_score = min(100, round(water / 8 * 100))
+        meal_count_score = min(100, len(today_meals) * 25)  # Ideal: 4 meals
+
+        overall_score = round((calorie_score + protein_score + water_score + meal_count_score) / 4)
+
+        # Insights
+        insights = []
+        if calorie_score < 50:
+            insights.append({"type": "warning", "message": f"You've only consumed {total_cal} of {target_cal} kcal today. Consider eating a balanced meal."})
+        elif calorie_score > 100:
+            insights.append({"type": "warning", "message": f"You've exceeded your calorie target by {total_cal - target_cal} kcal."})
+        else:
+            insights.append({"type": "success", "message": f"Great calorie management! {total_cal}/{target_cal} kcal."})
+
+        if protein_score < 50:
+            insights.append({"type": "tip", "message": "Try adding eggs, dal, or paneer to boost your protein intake."})
+
+        if water < 4:
+            insights.append({"type": "warning", "message": f"Drink more water! Only {water}/8 glasses today."})
+        elif water >= 8:
+            insights.append({"type": "success", "message": "Excellent hydration! You've hit your water goal. 💧"})
+
+        if len(today_meals) < 3:
+            insights.append({"type": "tip", "message": "Eating 4-5 smaller meals helps maintain energy levels throughout the day."})
+
+        report = {
+            "overall_score": overall_score,
+            "scores": {
+                "calories": calorie_score,
+                "protein": protein_score,
+                "hydration": water_score,
+                "meal_frequency": meal_count_score,
+            },
+            "today_summary": {
+                "calories": total_cal,
+                "protein": total_protein,
+                "carbs": total_carbs,
+                "fat": total_fat,
+                "meals": len(today_meals),
+                "water": water,
+            },
+            "targets": {
+                "calories": target_cal,
+                "macro_targets": macro_targets,
+                "water": 8,
+            },
+            "insights": insights,
+            "generated_at": datetime.now().isoformat(),
+        }
+
+        return jsonify({"report": report})
+
+    except Exception as e:
+        logger.error(f"Health report error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
 # Error Handlers
 # ---------------------------------------------------------------------------
 @app.errorhandler(404)
