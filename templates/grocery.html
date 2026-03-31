@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Smart Grocery List — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Smart Grocery List</h1>
+                <p class="page-subtitle">AI-generated shopping list from your meal plans</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="generateGroceryList()">🛒 Generate from Meal Plan</button>
+            </div>
+        </div>
+
+        <div class="plan-loading" id="groceryLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p>Generating your smart grocery list...</p>
+        </div>
+
+        <div id="groceryResults">
+            <div class="empty-state card">
+                <div class="empty-icon">🛒</div>
+                <h3>No Grocery List Yet</h3>
+                <p>Generate a meal plan first, then create a smart grocery list from it.</p>
+                <a href="/meal-plan" class="btn btn-primary">🍽️ Create Meal Plan First</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateGroceryList() {
+    document.getElementById('groceryLoading').style.display = 'flex';
+    try {
+        const res = await fetch('/api/grocery-list', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.grocery_list) {
+            renderGrocery(data.grocery_list);
+        } else if (data.error) {
+            showToast(data.error, 'error');
+        }
+    } catch(e) { showToast('Failed to generate list', 'error'); }
+    document.getElementById('groceryLoading').style.display = 'none';
+}
+
+function renderGrocery(list) {
+    const container = document.getElementById('groceryResults');
+    container.innerHTML = `
+        <div class="grocery-grid">
+            ${(list.categories || []).map(cat => `
+                <div class="grocery-category card">
+                    <h3>${cat.icon || '📦'} ${cat.name}</h3>
+                    <div class="grocery-items">
+                        ${(cat.items || []).map(item => `
+                            <label class="grocery-item">
+                                <input type="checkbox">
+                                <span class="grocery-name">${item.name}</span>
+                                <span class="grocery-qty">${item.quantity}</span>
+                                <span class="grocery-cost">${item.estimated_cost || ''}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${list.estimated_total ? `<div class="grocery-total card"><h3>Estimated Total: ${list.estimated_total}</h3></div>` : ''}
+        ${list.shopping_tips ? `<div class="card"><h3>💡 Shopping Tips</h3><ul>${list.shopping_tips.map(t => `<li>${t}</li>`).join('')}</ul></div>` : ''}
+    `;
+}
+</script>
+{% endblock %}

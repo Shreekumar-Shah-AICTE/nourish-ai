@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Profile Setup — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Your Health Profile</h1>
+                <p class="page-subtitle">Set up your profile for personalized AI nutrition guidance</p>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="profile-form card">
+                <form onsubmit="saveProfile(event)">
+                    <div class="form-section">
+                        <h3>👤 Basic Information</h3>
+                        <div class="form-group">
+                            <label for="profileName">Name</label>
+                            <input type="text" id="profileName" placeholder="Your name" value="{{ profile.get('name', '') }}">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profileAge">Age</label>
+                                <input type="number" id="profileAge" min="10" max="100" value="{{ profile.get('age', '') }}" placeholder="25">
+                            </div>
+                            <div class="form-group">
+                                <label for="profileGender">Gender</label>
+                                <select id="profileGender">
+                                    <option value="male" {% if profile.get('gender') == 'male' %}selected{% endif %}>Male</option>
+                                    <option value="female" {% if profile.get('gender') == 'female' %}selected{% endif %}>Female</option>
+                                    <option value="other" {% if profile.get('gender') == 'other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profileWeight">Weight (kg)</label>
+                                <input type="number" id="profileWeight" min="20" max="300" step="0.1" value="{{ profile.get('weight', '') }}" placeholder="70">
+                            </div>
+                            <div class="form-group">
+                                <label for="profileHeight">Height (cm)</label>
+                                <input type="number" id="profileHeight" min="100" max="250" value="{{ profile.get('height', '') }}" placeholder="170">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🎯 Goals & Lifestyle</h3>
+                        <div class="form-group">
+                            <label for="profileGoal">Health Goal</label>
+                            <select id="profileGoal">
+                                <option value="lose">🔥 Lose Weight</option>
+                                <option value="maintain">⚖️ Maintain Weight</option>
+                                <option value="gain">💪 Gain Muscle</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileActivity">Activity Level</label>
+                            <select id="profileActivity">
+                                <option value="sedentary">🪑 Sedentary (office job)</option>
+                                <option value="light">🚶 Light (1-3 days/week)</option>
+                                <option value="moderate" selected>🏃 Moderate (3-5 days/week)</option>
+                                <option value="active">🏋️ Active (6-7 days/week)</option>
+                                <option value="very_active">🔥 Very Active (athlete)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🍽️ Dietary Preferences</h3>
+                        <div class="form-group">
+                            <label for="profileDiet">Dietary Preference</label>
+                            <select id="profileDiet">
+                                <option value="none">No restrictions</option>
+                                <option value="vegetarian">🌿 Vegetarian</option>
+                                <option value="vegan">🌱 Vegan</option>
+                                <option value="eggetarian">🥚 Eggetarian</option>
+                                <option value="pescatarian">🐟 Pescatarian</option>
+                                <option value="keto">🥑 Keto</option>
+                                <option value="paleo">🥩 Paleo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Allergies (select all that apply)</label>
+                            <div class="checkbox-grid">
+                                <label class="checkbox-item"><input type="checkbox" value="gluten"> Gluten</label>
+                                <label class="checkbox-item"><input type="checkbox" value="dairy"> Dairy</label>
+                                <label class="checkbox-item"><input type="checkbox" value="nuts"> Nuts</label>
+                                <label class="checkbox-item"><input type="checkbox" value="soy"> Soy</label>
+                                <label class="checkbox-item"><input type="checkbox" value="eggs"> Eggs</label>
+                                <label class="checkbox-item"><input type="checkbox" value="shellfish"> Shellfish</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-block" id="saveBtn">
+                        💾 Save Profile & Calculate Goals
+                    </button>
+                </form>
+            </div>
+
+            <div class="profile-results" id="profileResults" style="display:none;">
+                <div class="card result-card">
+                    <h3>📊 Your Calculated Targets</h3>
+                    <div class="result-item">
+                        <span class="result-label">BMR (Basal Metabolic Rate)</span>
+                        <span class="result-value" id="resultBMR">—</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">TDEE (Total Daily Energy)</span>
+                        <span class="result-value" id="resultTDEE">—</span>
+                    </div>
+                    <div class="result-item highlight">
+                        <span class="result-label">🎯 Daily Calorie Target</span>
+                        <span class="result-value" id="resultTarget">—</span>
+                    </div>
+                    <div class="result-divider"></div>
+                    <h4>Macro Targets</h4>
+                    <div class="result-item">
+                        <span class="result-label">Protein</span>
+                        <span class="result-value" id="resultProtein">—</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Carbs</span>
+                        <span class="result-value" id="resultCarbs">—</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Fat</span>
+                        <span class="result-value" id="resultFat">—</span>
+                    </div>
+                </div>
+
+                <a href="/dashboard" class="btn btn-primary btn-lg btn-block">📊 Go to Dashboard</a>
+                <a href="/meal-plan" class="btn btn-glass btn-lg btn-block">🍽️ Generate Meal Plan</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function saveProfile(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true; btn.textContent = '⏳ Calculating...';
+
+    const allergies = Array.from(document.querySelectorAll('.checkbox-grid input:checked')).map(cb => cb.value);
+
+    const profile = {
+        name: document.getElementById('profileName').value || 'User',
+        age: parseInt(document.getElementById('profileAge').value) || 25,
+        gender: document.getElementById('profileGender').value,
+        weight: parseFloat(document.getElementById('profileWeight').value) || 70,
+        height: parseInt(document.getElementById('profileHeight').value) || 170,
+        goal: document.getElementById('profileGoal').value,
+        activity_level: document.getElementById('profileActivity').value,
+        dietary_pref: document.getElementById('profileDiet').value,
+        allergies: allergies,
+    };
+
+    try {
+        const res = await fetch('/api/profile', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(profile)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            const p = data.profile;
+            document.getElementById('resultBMR').textContent = `${p.bmr} kcal`;
+            document.getElementById('resultTDEE').textContent = `${p.tdee} kcal`;
+            document.getElementById('resultTarget').textContent = `${p.daily_calorie_target} kcal`;
+            document.getElementById('resultProtein').textContent = `${p.macro_targets.protein}g`;
+            document.getElementById('resultCarbs').textContent = `${p.macro_targets.carbs}g`;
+            document.getElementById('resultFat').textContent = `${p.macro_targets.fat}g`;
+            document.getElementById('profileResults').style.display = 'block';
+            showToast('Profile saved! Your targets are ready 🎯');
+        }
+    } catch(e) { showToast('Failed to save profile', 'error'); }
+
+    btn.disabled = false; btn.textContent = '💾 Save Profile & Calculate Goals';
+}
+</script>
+{% endblock %}

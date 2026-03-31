@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}Food Analyzer — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Smart Food Analyzer</h1>
+                <p class="page-subtitle">Get instant AI-powered nutritional breakdown of any food</p>
+            </div>
+        </div>
+
+        <!-- Analyzer Input -->
+        <div class="analyzer-card card">
+            <div class="form-group">
+                <label for="foodInput">Describe the food you want to analyze</label>
+                <div class="analyzer-input-wrap">
+                    <input type="text" id="foodInput" placeholder="e.g., 2 chapati with dal fry and mixed raita" class="input-lg" maxlength="500">
+                    <button class="btn btn-primary" onclick="analyzeFood()" id="analyzeBtn">
+                        🔍 Analyze
+                    </button>
+                </div>
+            </div>
+            <div class="quick-foods">
+                <span class="quick-label">Quick analyze:</span>
+                <button class="chip-btn" onclick="quickAnalyze('1 plate of Chicken Biryani')">🍗 Biryani</button>
+                <button class="chip-btn" onclick="quickAnalyze('2 Masala Dosa with chutney')">🥞 Dosa</button>
+                <button class="chip-btn" onclick="quickAnalyze('1 bowl of Oatmeal with banana and honey')">🥣 Oatmeal</button>
+                <button class="chip-btn" onclick="quickAnalyze('1 Paneer Butter Masala with 2 naan')">🧈 Paneer</button>
+                <button class="chip-btn" onclick="quickAnalyze('Greek Yogurt with mixed berries')">🍓 Yogurt</button>
+                <button class="chip-btn" onclick="quickAnalyze('2 egg omelette with toast')">🥚 Omelette</button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="plan-loading" id="analyzeLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p>Analyzing nutritional content with AI...</p>
+        </div>
+
+        <!-- Results -->
+        <div id="analyzeResults" style="display:none;">
+            <div class="analysis-grid">
+                <!-- Main Info -->
+                <div class="analysis-main card">
+                    <div class="analysis-header">
+                        <div>
+                            <h2 id="foodName">—</h2>
+                            <p id="servingSize">—</p>
+                        </div>
+                        <div class="health-score-wrap">
+                            <div class="health-score" id="healthScore">
+                                <span class="score-value">0</span>
+                                <span class="score-label">/10</span>
+                            </div>
+                            <span class="score-text">Health Score</span>
+                        </div>
+                    </div>
+
+                    <!-- Calorie Display -->
+                    <div class="calorie-display">
+                        <span class="calorie-number" id="totalCalories">0</span>
+                        <span class="calorie-unit">calories</span>
+                    </div>
+
+                    <!-- Macro Bars -->
+                    <div class="macro-bars" id="macroBars"></div>
+
+                    <!-- Tags -->
+                    <div class="health-tags" id="healthTags"></div>
+
+                    <!-- Fun Fact -->
+                    <div class="fun-fact" id="funFact" style="display:none;">
+                        <span class="fact-icon">🧠</span>
+                        <p id="funFactText"></p>
+                    </div>
+                </div>
+
+                <!-- Side Panel -->
+                <div class="analysis-side">
+                    <!-- Micronutrients -->
+                    <div class="card">
+                        <h3>🔬 Micronutrients</h3>
+                        <div class="micro-list" id="microList"></div>
+                    </div>
+
+                    <!-- Healthier Alternatives -->
+                    <div class="card">
+                        <h3>🌱 Healthier Alternatives</h3>
+                        <div class="alternatives-list" id="alternativesList"></div>
+                    </div>
+
+                    <!-- Warnings -->
+                    <div class="card" id="warningsCard" style="display:none;">
+                        <h3>⚠️ Heads Up</h3>
+                        <div class="warnings-list" id="warningsList"></div>
+                    </div>
+
+                    <!-- Add to Log -->
+                    <button class="btn btn-primary btn-block" onclick="addToLog()">
+                        📝 Add to Today's Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentAnalysis = null;
+
+function quickAnalyze(food) {
+    document.getElementById('foodInput').value = food;
+    analyzeFood();
+}
+
+async function analyzeFood() {
+    const food = document.getElementById('foodInput').value.trim();
+    if (!food) { showToast('Please describe a food item', 'error'); return; }
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    document.getElementById('analyzeLoading').style.display = 'flex';
+    document.getElementById('analyzeResults').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({food})
+        });
+        const data = await res.json();
+
+        if (data.analysis) {
+            currentAnalysis = data.analysis;
+            renderAnalysis(data.analysis);
+            document.getElementById('analyzeResults').style.display = 'block';
+        } else if (data.analysis_text) {
+            document.getElementById('analyzeResults').innerHTML = `<div class="card">${data.analysis_text}</div>`;
+            document.getElementById('analyzeResults').style.display = 'block';
+        } else if (data.error) {
+            showToast(data.error, 'error');
+        }
+    } catch(e) {
+        showToast('Analysis failed. Please try again.', 'error');
+    }
+
+    document.getElementById('analyzeLoading').style.display = 'none';
+    btn.disabled = false;
+}
+
+function renderAnalysis(a) {
+    document.getElementById('foodName').textContent = a.food_name || '—';
+    document.getElementById('servingSize').textContent = `Serving: ${a.serving_size || '—'}`;
+    animateValue('totalCalories', a.calories || 0);
+
+    // Health Score
+    const score = a.health_score || 5;
+    const scoreEl = document.getElementById('healthScore');
+    scoreEl.querySelector('.score-value').textContent = score;
+    scoreEl.className = `health-score score-${score >= 7 ? 'good' : score >= 4 ? 'mid' : 'low'}`;
+
+    // Macros
+    const macros = a.macros || {};
+    document.getElementById('macroBars').innerHTML = Object.entries(macros).map(([key, val]) => `
+        <div class="macro-bar-item">
+            <div class="macro-bar-header">
+                <span class="macro-bar-name">${key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                <span class="macro-bar-value">${val.amount || 0}${val.unit || 'g'}</span>
+            </div>
+            <div class="macro-bar-track">
+                <div class="macro-bar-fill macro-${key}" style="width: ${Math.min(val.daily_percent || 0, 100)}%"></div>
+            </div>
+            <span class="macro-bar-pct">${val.daily_percent || 0}% daily</span>
+        </div>
+    `).join('');
+
+    // Tags
+    document.getElementById('healthTags').innerHTML = (a.health_tags || []).map(t =>
+        `<span class="health-tag">${t}</span>`
+    ).join('');
+
+    // Fun fact
+    if (a.fun_fact) {
+        document.getElementById('funFact').style.display = 'flex';
+        document.getElementById('funFactText').textContent = a.fun_fact;
+    }
+
+    // Micros
+    document.getElementById('microList').innerHTML = (a.micros || []).map(m => `
+        <div class="micro-item">
+            <span class="micro-name">${m.name}</span>
+            <div class="micro-bar-track"><div class="micro-bar-fill" style="width:${Math.min(m.daily_percent || 0, 100)}%"></div></div>
+            <span class="micro-value">${m.amount} (${m.daily_percent}%)</span>
+        </div>
+    `).join('') || '<p class="text-muted">No data available</p>';
+
+    // Alternatives
+    document.getElementById('alternativesList').innerHTML = (a.healthier_alternatives || []).map(alt =>
+        `<div class="alt-item">🌿 ${alt}</div>`
+    ).join('') || '<p class="text-muted">No alternatives suggested</p>';
+
+    // Warnings
+    if (a.warnings && a.warnings.length > 0) {
+        document.getElementById('warningsCard').style.display = 'block';
+        document.getElementById('warningsList').innerHTML = a.warnings.map(w =>
+            `<div class="warning-item">⚠️ ${w}</div>`
+        ).join('');
+    } else {
+        document.getElementById('warningsCard').style.display = 'none';
+    }
+}
+
+async function addToLog() {
+    if (!currentAnalysis) return;
+    const meal = {
+        name: currentAnalysis.food_name,
+        calories: currentAnalysis.calories || 0,
+        protein: currentAnalysis.macros?.protein?.amount || 0,
+        carbs: currentAnalysis.macros?.carbohydrates?.amount || 0,
+        fat: currentAnalysis.macros?.fat?.amount || 0,
+        meal_type: 'snack'
+    };
+    try {
+        await fetch('/api/log-meal', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(meal)});
+        showToast('Added to today\'s log! 🎉');
+    } catch(e) { showToast('Failed to add', 'error'); }
+}
+</script>
+{% endblock %}

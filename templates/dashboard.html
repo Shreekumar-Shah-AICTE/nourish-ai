@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Daily Dashboard</h1>
+                <p class="page-subtitle">Track your nutrition, hydration, and progress</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-glass" onclick="refreshTip()" id="tipBtn">💡 Get AI Tip</button>
+                <button class="btn btn-primary" onclick="openLogModal()">+ Log Meal</button>
+            </div>
+        </div>
+
+        <!-- AI Tip Banner -->
+        <div class="tip-banner animate-fade-in" id="tipBanner" style="display:none;">
+            <span class="tip-icon">💡</span>
+            <p id="tipText"></p>
+            <button class="tip-close" onclick="this.parentElement.style.display='none'">&times;</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-calories">
+                <div class="kpi-ring-wrap">
+                    <svg class="kpi-ring" viewBox="0 0 120 120">
+                        <circle class="kpi-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="kpi-ring-fill" cx="60" cy="60" r="52" id="calorieRing" style="--progress:0"/>
+                    </svg>
+                    <div class="kpi-ring-label">
+                        <span class="kpi-value" id="calorieValue">0</span>
+                        <span class="kpi-unit">kcal</span>
+                    </div>
+                </div>
+                <div class="kpi-info">
+                    <h3>Calories</h3>
+                    <p>of <span id="calorieTarget">2000</span> kcal goal</p>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-protein">
+                <div class="kpi-ring-wrap">
+                    <svg class="kpi-ring" viewBox="0 0 120 120">
+                        <circle class="kpi-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="kpi-ring-fill kpi-ring-protein" cx="60" cy="60" r="52" id="proteinRing" style="--progress:0"/>
+                    </svg>
+                    <div class="kpi-ring-label">
+                        <span class="kpi-value" id="proteinValue">0</span>
+                        <span class="kpi-unit">g</span>
+                    </div>
+                </div>
+                <div class="kpi-info">
+                    <h3>Protein</h3>
+                    <p>of <span id="proteinTarget">150</span>g goal</p>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-carbs">
+                <div class="kpi-ring-wrap">
+                    <svg class="kpi-ring" viewBox="0 0 120 120">
+                        <circle class="kpi-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="kpi-ring-fill kpi-ring-carbs" cx="60" cy="60" r="52" id="carbsRing" style="--progress:0"/>
+                    </svg>
+                    <div class="kpi-ring-label">
+                        <span class="kpi-value" id="carbsValue">0</span>
+                        <span class="kpi-unit">g</span>
+                    </div>
+                </div>
+                <div class="kpi-info">
+                    <h3>Carbs</h3>
+                    <p>of <span id="carbsTarget">225</span>g goal</p>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-fat">
+                <div class="kpi-ring-wrap">
+                    <svg class="kpi-ring" viewBox="0 0 120 120">
+                        <circle class="kpi-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="kpi-ring-fill kpi-ring-fat" cx="60" cy="60" r="52" id="fatRing" style="--progress:0"/>
+                    </svg>
+                    <div class="kpi-ring-label">
+                        <span class="kpi-value" id="fatValue">0</span>
+                        <span class="kpi-unit">g</span>
+                    </div>
+                </div>
+                <div class="kpi-info">
+                    <h3>Fat</h3>
+                    <p>of <span id="fatTarget">56</span>g goal</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Water + Streak Row -->
+        <div class="tracker-row">
+            <div class="tracker-card water-tracker">
+                <div class="tracker-header">
+                    <h3>💧 Water Intake</h3>
+                    <span class="tracker-count" id="waterCount">0 / 8 glasses</span>
+                </div>
+                <div class="water-glasses" id="waterGlasses">
+                    <!-- 8 glasses rendered by JS -->
+                </div>
+                <div class="water-actions">
+                    <button class="btn btn-sm btn-glass" onclick="logWater('remove')">−</button>
+                    <span id="waterMl">0 ml</span>
+                    <button class="btn btn-sm btn-primary" onclick="logWater('add')">+</button>
+                </div>
+            </div>
+
+            <div class="tracker-card streak-tracker">
+                <div class="tracker-header">
+                    <h3>🔥 Eating Streak</h3>
+                </div>
+                <div class="streak-display">
+                    <span class="streak-number" id="streakCount">0</span>
+                    <span class="streak-label">days</span>
+                </div>
+                <p class="streak-msg" id="streakMsg">Log your first meal to start a streak!</p>
+            </div>
+
+            <div class="tracker-card meals-tracker">
+                <div class="tracker-header">
+                    <h3>🍽️ Meals Today</h3>
+                    <span class="tracker-count" id="mealsCount">0 meals logged</span>
+                </div>
+                <div class="meals-list" id="mealsList">
+                    <div class="empty-state">
+                        <p>No meals logged yet today</p>
+                        <button class="btn btn-sm btn-primary" onclick="openLogModal()">Log your first meal</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Log Meal Modal -->
+<div class="modal-overlay" id="logModal" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Log a Meal</h2>
+            <button class="modal-close" onclick="closeLogModal()" aria-label="Close">&times;</button>
+        </div>
+        <form onsubmit="submitMealLog(event)">
+            <div class="form-group">
+                <label for="mealName">Food / Meal Name</label>
+                <input type="text" id="mealName" placeholder="e.g., Grilled chicken with rice" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mealCalories">Calories (kcal)</label>
+                    <input type="number" id="mealCalories" placeholder="350" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="mealType">Meal Type</label>
+                    <select id="mealType">
+                        <option value="breakfast">🌅 Breakfast</option>
+                        <option value="lunch">☀️ Lunch</option>
+                        <option value="dinner">🌙 Dinner</option>
+                        <option value="snack">🍎 Snack</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mealProtein">Protein (g)</label>
+                    <input type="number" id="mealProtein" placeholder="30" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="mealCarbs">Carbs (g)</label>
+                    <input type="number" id="mealCarbs" placeholder="45" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="mealFat">Fat (g)</label>
+                    <input type="number" id="mealFat" placeholder="12" min="0">
+                </div>
+            </div>
+            <p class="form-hint">💡 Don't know the nutrition? <a href="/analyze" class="link">Analyze your food first</a></p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-glass" onclick="closeLogModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Log Meal</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboard();
+    renderWaterGlasses();
+    refreshTip();
+});
+
+async function loadDashboard() {
+    try {
+        const res = await fetch('/api/daily-summary');
+        const data = await res.json();
+        if (data.summary) updateDashboard(data.summary);
+    } catch(e) { console.error('Dashboard load error:', e); }
+}
+
+function updateDashboard(s) {
+    const target = s.target_calories || 2000;
+    const mt = s.macro_targets || {protein:150, carbs:225, fat:56};
+    animateValue('calorieValue', s.calories);
+    animateValue('proteinValue', s.protein);
+    animateValue('carbsValue', s.carbs);
+    animateValue('fatValue', s.fat);
+    document.getElementById('calorieTarget').textContent = target;
+    document.getElementById('proteinTarget').textContent = mt.protein;
+    document.getElementById('carbsTarget').textContent = mt.carbs;
+    document.getElementById('fatTarget').textContent = mt.fat;
+    setRingProgress('calorieRing', s.calories / target);
+    setRingProgress('proteinRing', s.protein / mt.protein);
+    setRingProgress('carbsRing', s.carbs / mt.carbs);
+    setRingProgress('fatRing', s.fat / mt.fat);
+    document.getElementById('streakCount').textContent = s.streak || 0;
+    document.getElementById('mealsCount').textContent = `${s.meals_count} meals logged`;
+    updateWater(s.water_glasses || 0);
+    if (s.meals && s.meals.length > 0) {
+        const list = document.getElementById('mealsList');
+        list.innerHTML = s.meals.map(m => `
+            <div class="meal-item">
+                <span class="meal-name">${m.name || m.food || 'Meal'}</span>
+                <span class="meal-cal">${m.calories || 0} kcal</span>
+            </div>
+        `).join('');
+    }
+}
+
+function setRingProgress(id, pct) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const clamped = Math.min(pct, 1);
+    const circumference = 2 * Math.PI * 52;
+    const offset = circumference * (1 - clamped);
+    el.style.strokeDasharray = circumference;
+    el.style.strokeDashoffset = offset;
+}
+
+function renderWaterGlasses() {
+    const container = document.getElementById('waterGlasses');
+    if (!container) return;
+    container.innerHTML = Array.from({length:8}, (_,i) =>
+        `<div class="water-glass" data-index="${i}">💧</div>`
+    ).join('');
+}
+
+function updateWater(count) {
+    document.querySelectorAll('.water-glass').forEach((g, i) => {
+        g.classList.toggle('filled', i < count);
+    });
+    document.getElementById('waterCount').textContent = `${count} / 8 glasses`;
+    document.getElementById('waterMl').textContent = `${count * 250} ml`;
+}
+
+async function logWater(action) {
+    const res = await fetch('/api/water', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action})});
+    const data = await res.json();
+    updateWater(data.glasses);
+}
+
+async function refreshTip() {
+    const btn = document.getElementById('tipBtn');
+    btn.disabled = true; btn.textContent = '⏳ Loading...';
+    try {
+        const res = await fetch('/api/quick-tip');
+        const data = await res.json();
+        document.getElementById('tipText').textContent = data.tip;
+        document.getElementById('tipBanner').style.display = 'flex';
+    } catch(e) {}
+    btn.disabled = false; btn.textContent = '💡 Get AI Tip';
+}
+
+function openLogModal() { document.getElementById('logModal').style.display = 'flex'; }
+function closeLogModal() { document.getElementById('logModal').style.display = 'none'; }
+
+async function submitMealLog(e) {
+    e.preventDefault();
+    const meal = {
+        name: document.getElementById('mealName').value,
+        calories: parseInt(document.getElementById('mealCalories').value) || 0,
+        protein: parseInt(document.getElementById('mealProtein').value) || 0,
+        carbs: parseInt(document.getElementById('mealCarbs').value) || 0,
+        fat: parseInt(document.getElementById('mealFat').value) || 0,
+        meal_type: document.getElementById('mealType').value,
+    };
+    try {
+        await fetch('/api/log-meal', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(meal)});
+        closeLogModal();
+        loadDashboard();
+        showToast('Meal logged successfully! 🎉');
+    } catch(e) { showToast('Failed to log meal', 'error'); }
+}
+</script>
+{% endblock %}

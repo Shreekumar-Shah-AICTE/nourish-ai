@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}NourishAI — Smart Nutrition Assistant{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero" id="hero">
+    <div class="hero-bg-effects">
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="hero-orb hero-orb-3"></div>
+    </div>
+    <div class="hero-content">
+        <div class="hero-badge animate-fade-in">
+            <span class="badge-dot"></span>
+            <span>Powered by Google Gemini AI</span>
+        </div>
+        <h1 class="hero-title animate-slide-up">
+            Your Personal<br>
+            <span class="gradient-text">AI Nutritionist</span>
+        </h1>
+        <p class="hero-subtitle animate-slide-up delay-1">
+            Make smarter food choices, build healthier habits, and achieve your wellness goals
+            with an AI that understands your unique nutritional needs.
+        </p>
+        <div class="hero-actions animate-slide-up delay-2">
+            <a href="/profile" class="btn btn-primary btn-lg">
+                <span>Get Started Free</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a href="/chat" class="btn btn-glass btn-lg">
+                <span>💬 Try AI Chat</span>
+            </a>
+        </div>
+        <div class="hero-stats animate-fade-in delay-3">
+            <div class="stat-item">
+                <span class="stat-number" data-count="500">0</span><span class="stat-suffix">+</span>
+                <span class="stat-label">Foods Analyzed</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-number" data-count="50">0</span><span class="stat-suffix">+</span>
+                <span class="stat-label">Meal Plans</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-number" data-count="99">0</span><span class="stat-suffix">%</span>
+                <span class="stat-label">AI Accuracy</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section" id="features">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <span class="section-badge">Features</span>
+            <h2 class="section-title">Everything You Need for<br><span class="gradient-text">Healthier Eating</span></h2>
+            <p class="section-subtitle">Powered by Google's most advanced AI, NourishAI transforms how you think about food.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card feature-card-highlight animate-on-scroll">
+                <div class="feature-icon-wrap">
+                    <span class="feature-icon">🤖</span>
+                </div>
+                <h3>AI Nutritionist Chat</h3>
+                <p>Have a real conversation with your personal AI nutritionist. Ask anything about food, diet plans, or nutrition — get instant, expert-level answers.</p>
+                <a href="/chat" class="feature-link">Try it now →</a>
+            </div>
+
+            <div class="feature-card animate-on-scroll">
+                <div class="feature-icon-wrap">
+                    <span class="feature-icon">🔍</span>
+                </div>
+                <h3>Smart Food Analysis</h3>
+                <p>Describe any food and get instant nutritional breakdown — calories, macros, micros, health score, and healthier alternatives.</p>
+                <a href="/analyze" class="feature-link">Analyze food →</a>
+            </div>
+
+            <div class="feature-card animate-on-scroll">
+                <div class="feature-icon-wrap">
+                    <span class="feature-icon">🍽️</span>
+                </div>
+                <h3>Personalized Meal Plans</h3>
+                <p>AI-generated meal plans tailored to your goals, preferences, allergies, and cultural cuisine — with prep times and portions.</p>
+                <a href="/meal-plan" class="feature-link">Create plan →</a>
+            </div>
+
+            <div class="feature-card animate-on-scroll">
+                <div class="feature-icon-wrap">
+                    <span class="feature-icon">📊</span>
+                </div>
+                <h3>Daily Dashboard</h3>
+                <p>Track your calories, macros, water intake, and eating streaks. Visual progress rings show exactly where you stand.</p>
+                <a href="/dashboard" class="feature-link">View dashboard →</a>
+            </div>
+
+            <div class="feature-card animate-on-scroll">
+                <div class="feature-icon-wrap">
+                    <span class="feature-icon">🛒</span>
+                </div>
+                <h3>Smart Grocery Lists</h3>
+                <p>Automatically generate organized shopping lists from your meal plans — categorized, with quantities and cost estimates.</p>
+                <a href="/grocery" class="feature-link">Generate list →</a>
+            </div>
+
+            <div class="feature-card animate-on-scroll">
+                <div class="feature-icon-wrap">
+                    <span class="feature-icon">🎯</span>
+                </div>
+                <h3>Goal Tracking</h3>
+                <p>Set weight loss, muscle gain, or wellness goals. BMR/TDEE calculations ensure your targets are scientifically backed.</p>
+                <a href="/profile" class="feature-link">Set goals →</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="how-section">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <span class="section-badge">How It Works</span>
+            <h2 class="section-title">Three Steps to<br><span class="gradient-text">Better Nutrition</span></h2>
+        </div>
+
+        <div class="steps-grid">
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">01</div>
+                <h3>Set Your Profile</h3>
+                <p>Tell us about your health goals, dietary preferences, allergies, and activity level.</p>
+            </div>
+            <div class="step-connector animate-on-scroll">→</div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">02</div>
+                <h3>Get AI Guidance</h3>
+                <p>Receive personalized meal plans, food analysis, and expert nutritional advice from Gemini AI.</p>
+            </div>
+            <div class="step-connector animate-on-scroll">→</div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">03</div>
+                <h3>Track & Improve</h3>
+                <p>Log your meals, monitor your progress, and build lasting healthy eating habits.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Google Services -->
+<section class="google-section">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <span class="section-badge">Tech Stack</span>
+            <h2 class="section-title">Built with<br><span class="gradient-text">Google Services</span></h2>
+        </div>
+        <div class="google-grid">
+            <div class="google-card animate-on-scroll">
+                <div class="google-icon">🧠</div>
+                <h3>Google Gemini AI</h3>
+                <p>Advanced multimodal AI for nutritional analysis, meal planning, and conversational health coaching.</p>
+            </div>
+            <div class="google-card animate-on-scroll">
+                <div class="google-icon">☁️</div>
+                <h3>Google Cloud Run</h3>
+                <p>Serverless container deployment for scalable, always-available nutrition assistance.</p>
+            </div>
+            <div class="google-card animate-on-scroll">
+                <div class="google-icon">🔤</div>
+                <h3>Google Fonts</h3>
+                <p>Premium Inter typeface for a clean, accessible, professional interface.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card animate-on-scroll">
+            <h2>Ready to Transform Your Eating Habits?</h2>
+            <p>Join NourishAI and let AI guide you to a healthier, happier you.</p>
+            <a href="/profile" class="btn btn-primary btn-lg">
+                <span>Start Your Journey</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

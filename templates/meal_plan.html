@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Meal Planner — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">AI Meal Planner</h1>
+                <p class="page-subtitle">Get personalized meal plans tailored to your goals</p>
+            </div>
+        </div>
+
+        <!-- Plan Generator -->
+        <div class="plan-generator card">
+            <h3>🍽️ Generate Your Meal Plan</h3>
+            <div class="plan-options">
+                <div class="form-group">
+                    <label for="planRequest">What kind of meal plan do you want?</label>
+                    <input type="text" id="planRequest" placeholder="e.g., High-protein vegetarian plan for weight loss" class="input-lg">
+                </div>
+                <div class="form-row">
+                    <button class="chip-btn" onclick="setRequest('Balanced healthy meal plan for today')">🥗 Balanced</button>
+                    <button class="chip-btn" onclick="setRequest('High-protein muscle building meal plan')">💪 High Protein</button>
+                    <button class="chip-btn" onclick="setRequest('Low-carb keto-friendly meal plan')">🥑 Low Carb</button>
+                    <button class="chip-btn" onclick="setRequest('Vegetarian Indian meal plan')">🌿 Vegetarian</button>
+                    <button class="chip-btn" onclick="setRequest('Budget-friendly healthy meal plan under ₹300')">💰 Budget</button>
+                    <button class="chip-btn" onclick="setRequest('Quick meals under 20 minutes each')">⚡ Quick Meals</button>
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="generatePlan()" id="genBtn">
+                    <span>✨ Generate with AI</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="plan-loading" id="planLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p>AI is crafting your personalized meal plan...</p>
+        </div>
+
+        <!-- Meal Plan Results -->
+        <div id="planResults" style="display:none;">
+            <!-- Summary -->
+            <div class="plan-summary card">
+                <h3>📊 Daily Nutrition Summary</h3>
+                <div class="summary-grid" id="summaryGrid"></div>
+                <p class="daily-tip" id="dailyTip"></p>
+            </div>
+
+            <!-- Meals -->
+            <div class="meals-timeline" id="mealsTimeline"></div>
+
+            <!-- Actions -->
+            <div class="plan-actions">
+                <button class="btn btn-glass" onclick="generatePlan()">🔄 Regenerate</button>
+                <button class="btn btn-primary" onclick="generateGrocery()">🛒 Generate Grocery List</button>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setRequest(text) {
+    document.getElementById('planRequest').value = text;
+}
+
+async function generatePlan() {
+    const request = document.getElementById('planRequest').value || 'Generate a healthy balanced meal plan for today';
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    document.getElementById('planLoading').style.display = 'flex';
+    document.getElementById('planResults').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/meal-plan', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({request})
+        });
+        const data = await res.json();
+
+        if (data.meal_plan) {
+            renderMealPlan(data.meal_plan);
+            document.getElementById('planResults').style.display = 'block';
+        } else if (data.meal_plan_text) {
+            document.getElementById('mealsTimeline').innerHTML = `<div class="card"><div class="markdown-content">${formatMarkdown(data.meal_plan_text)}</div></div>`;
+            document.getElementById('planResults').style.display = 'block';
+        } else if (data.error) {
+            showToast(data.error, 'error');
+        }
+    } catch(e) {
+        showToast('Failed to generate meal plan', 'error');
+    }
+
+    document.getElementById('planLoading').style.display = 'none';
+    btn.disabled = false;
+}
+
+function renderMealPlan(plan) {
+    // Summary
+    const grid = document.getElementById('summaryGrid');
+    grid.innerHTML = `
+        <div class="summary-item"><span class="summary-value">${plan.total_calories || '—'}</span><span class="summary-label">Calories</span></div>
+        <div class="summary-item"><span class="summary-value">${plan.total_protein || '—'}g</span><span class="summary-label">Protein</span></div>
+        <div class="summary-item"><span class="summary-value">${plan.total_carbs || '—'}g</span><span class="summary-label">Carbs</span></div>
+        <div class="summary-item"><span class="summary-value">${plan.total_fat || '—'}g</span><span class="summary-label">Fat</span></div>
+        <div class="summary-item"><span class="summary-value">${plan.hydration_goal || '2.5L'}</span><span class="summary-label">Water</span></div>
+    `;
+
+    document.getElementById('dailyTip').textContent = '💡 ' + (plan.daily_tip || '');
+
+    // Meals timeline
+    const timeline = document.getElementById('mealsTimeline');
+    const mealIcons = {'Breakfast':'🌅','Mid-Morning Snack':'🍌','Lunch':'☀️','Evening Snack':'🍵','Dinner':'🌙','Snack':'🍎'};
+
+    timeline.innerHTML = (plan.meals || []).map(meal => `
+        <div class="meal-card card animate-slide-up">
+            <div class="meal-card-header">
+                <div>
+                    <span class="meal-type-icon">${mealIcons[meal.type] || '🍽️'}</span>
+                    <h3>${meal.type}</h3>
+                </div>
+                <div class="meal-meta">
+                    <span class="meal-time">🕐 ${meal.time || ''}</span>
+                    <span class="meal-prep">⏱️ ${meal.prep_time || ''}</span>
+                </div>
+            </div>
+            <div class="meal-items">
+                ${(meal.items || []).map(item => `
+                    <div class="food-item">
+                        <div class="food-info">
+                            <span class="food-name">${item.name}</span>
+                            <span class="food-portion">${item.portion}</span>
+                        </div>
+                        <div class="food-macros">
+                            <span class="macro cal">${item.calories} kcal</span>
+                            <span class="macro pro">P:${item.protein}g</span>
+                            <span class="macro carb">C:${item.carbs}g</span>
+                            <span class="macro fat">F:${item.fat}g</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            ${meal.tip ? `<p class="meal-tip">💡 ${meal.tip}</p>` : ''}
+        </div>
+    `).join('');
+}
+
+async function generateGrocery() {
+    showToast('Generating grocery list...');
+    try {
+        const res = await fetch('/api/grocery-list', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({})});
+        const data = await res.json();
+        if (data.grocery_list || data.grocery_text) {
+            window.location.href = '/grocery';
+        }
+    } catch(e) { showToast('Error generating grocery list', 'error'); }
+}
+
+function formatMarkdown(text) {
+    if (!text) return '';
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+}
+</script>
+{% endblock %}

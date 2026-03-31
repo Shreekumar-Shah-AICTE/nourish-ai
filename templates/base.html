@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NourishAI — AI-powered smart nutrition assistant for healthier eating habits">
+    <title>{% block title %}NourishAI{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="mainNav">
+        <div class="nav-container">
+            <a href="/" class="nav-logo" aria-label="NourishAI Home">
+                <span class="logo-icon">🥗</span>
+                <span class="logo-text">Nourish<span class="logo-accent">AI</span></span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/chat" class="nav-link {% if request.path == '/chat' %}active{% endif %}">
+                    <span class="nav-icon">💬</span> AI Chat
+                </a>
+                <a href="/meal-plan" class="nav-link {% if request.path == '/meal-plan' %}active{% endif %}">
+                    <span class="nav-icon">🍽️</span> Meal Plan
+                </a>
+                <a href="/analyze" class="nav-link {% if request.path == '/analyze' %}active{% endif %}">
+                    <span class="nav-icon">🔍</span> Analyze
+                </a>
+                <a href="/profile" class="nav-link {% if request.path == '/profile' %}active{% endif %}">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" role="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="footer-container">
+            <p>Built with ❤️ using <strong>Google Gemini AI</strong> &bull; AMD Slingshot Campus Days 2026</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

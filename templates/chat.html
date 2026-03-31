@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}AI Nutritionist — NourishAI{% endblock %}
+
+{% block content %}
+<section class="page-section chat-page">
+    <div class="container">
+        <div class="chat-layout">
+            <!-- Sidebar -->
+            <div class="chat-sidebar">
+                <h3>💬 AI Nutritionist</h3>
+                <p class="chat-desc">Ask me anything about nutrition, food choices, diets, or healthy eating habits.</p>
+                <div class="chat-suggestions">
+                    <h4>Try asking:</h4>
+                    <button class="suggestion-chip" onclick="sendSuggestion(this.textContent)">What should I eat for breakfast to lose weight?</button>
+                    <button class="suggestion-chip" onclick="sendSuggestion(this.textContent)">Is brown rice better than white rice?</button>
+                    <button class="suggestion-chip" onclick="sendSuggestion(this.textContent)">How much protein do I need daily?</button>
+                    <button class="suggestion-chip" onclick="sendSuggestion(this.textContent)">Suggest a high-protein vegetarian meal</button>
+                    <button class="suggestion-chip" onclick="sendSuggestion(this.textContent)">What are the best foods for immunity?</button>
+                    <button class="suggestion-chip" onclick="sendSuggestion(this.textContent)">Create a 7-day diet plan for weight loss</button>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="chat-main">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-message assistant">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <p>Hi! I'm your <strong>AI Nutritionist</strong> powered by Google Gemini. 🥗</p>
+                            <p>I can help you with:</p>
+                            <ul>
+                                <li>🍎 Personalized food recommendations</li>
+                                <li>📊 Nutritional analysis of any food</li>
+                                <li>🍽️ Meal planning and diet advice</li>
+                                <li>💪 Fitness nutrition guidance</li>
+                                <li>🌿 Dietary restriction support</li>
+                            </ul>
+                            <p>What would you like to know?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <form onsubmit="sendChat(event)" class="chat-form">
+                        <div class="chat-input-wrap">
+                            <input type="text" id="chatInput" placeholder="Ask about nutrition, food, or diet..." 
+                                   autocomplete="off" aria-label="Chat message" maxlength="1000">
+                            <button type="submit" class="chat-send-btn" id="sendBtn" aria-label="Send message">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="chat-disclaimer">AI-powered advice. Not a substitute for professional medical guidance.</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function sendSuggestion(text) {
+    document.getElementById('chatInput').value = text;
+    sendChat(new Event('submit'));
+}
+
+async function sendChat(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const messagesDiv = document.getElementById('chatMessages');
+    
+    // Add user message
+    messagesDiv.innerHTML += `
+        <div class="chat-message user animate-slide-up">
+            <div class="message-content"><p>${escapeHtml(message)}</p></div>
+            <div class="message-avatar">👤</div>
+        </div>`;
+
+    input.value = '';
+    input.disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    // Add typing indicator
+    const typingId = 'typing-' + Date.now();
+    messagesDiv.innerHTML += `
+        <div class="chat-message assistant" id="${typingId}">
+            <div class="message-avatar">🤖</div>
+            <div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+        </div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message})
+        });
+        const data = await res.json();
+        
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+
+        if (data.error) {
+            messagesDiv.innerHTML += `
+                <div class="chat-message assistant animate-slide-up">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content error"><p>⚠️ ${data.error}</p></div>
+                </div>`;
+        } else {
+            messagesDiv.innerHTML += `
+                <div class="chat-message assistant animate-slide-up">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">${formatMarkdown(data.response)}</div>
+                </div>`;
+        }
+    } catch(err) {
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+        messagesDiv.innerHTML += `
+            <div class="chat-message assistant animate-slide-up">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content error"><p>⚠️ Connection error. Please try again.</p></div>
+            </div>`;
+    }
+
+    input.disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    input.focus();
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatMarkdown(text) {
+    if (!text) return '<p>No response</p>';
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^### (.*$)/gm, '<h4>$1</h4>')
+        .replace(/^## (.*$)/gm, '<h3>$1</h3>')
+        .replace(/^# (.*$)/gm, '<h2>$1</h2>')
+        .replace(/^- (.*$)/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^(.*)$/, '<p>$1</p>')
+        .replace(/<p><\/p>/g, '');
+}
+
+document.getElementById('chatInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChat(e);
+    }
+});
+</script>
+{% endblock %}
