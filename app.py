@@ -254,6 +254,18 @@ def profile():
     return render_template("profile.html", profile=profile)
 
 
+@app.route("/recipes")
+def recipes():
+    """AI recipe finder."""
+    return render_template("recipes.html")
+
+
+@app.route("/compare")
+def compare():
+    """Food comparison tool."""
+    return render_template("compare.html")
+
+
 # ---------------------------------------------------------------------------
 # API Routes
 # ---------------------------------------------------------------------------
